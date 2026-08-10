@@ -1,0 +1,77 @@
+name: Terraform
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Terraform action to run"
+        type: choice
+        required: true
+        default: plan
+        options:
+          - plan
+          - apply
+          - destroy
+          - fmt-validate
+
+permissions:
+  contents: read
+
+env:
+  TF_WORKING_DIR: infratructure-as-code
+  TF_VERSION: "1.9.8"
+
+jobs:
+  terraform:
+    name: terraform-${{ inputs.action }}
+    runs-on: ubuntu-latest
+    # apply/destroy run under the "production" environment: if required reviewers
+    # are configured for it under Settings > Environments, they will require manual approval.
+    environment: ${{ (inputs.action == 'apply' || inputs.action == 'destroy') && 'production' || 'terraform-readonly' }}
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=invoice-processor/terraform.tfstate" \
+            -backend-config="region=${{ vars.AWS_REGION }}" \
+            -backend-config="dynamodb_table=${{ vars.TF_STATE_LOCK_TABLE }}"
+
+      - name: Terraform Format Check
+        if: inputs.action == 'fmt-validate'
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        if: inputs.action == 'fmt-validate'
+        run: terraform validate
+
+      - name: Terraform Plan
+        if: inputs.action == 'plan'
+        run: terraform plan -input=false -var="aws_region=${{ vars.AWS_REGION }}"
+
+      - name: Terraform Apply
+        if: inputs.action == 'apply'
+        run: terraform apply -input=false -auto-approve -var="aws_region=${{ vars.AWS_REGION }}"
+
+      - name: Terraform Destroy
+        if: inputs.action == 'destroy'
+        run: terraform destroy -input=false -auto-approve -var="aws_region=${{ vars.AWS_REGION }}"

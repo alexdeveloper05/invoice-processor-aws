@@ -65,6 +65,46 @@ Repo → **Actions** tab → **Terraform** (left sidebar) → **Run workflow**, 
 
 Start new changes with `plan` (or `fmt-validate`) before ever running `apply`.
 
+## Uploading tickets
+
+The frontend uploads tickets straight to S3 using short-lived presigned URLs, so the file itself never passes through Lambda or API Gateway:
+
+1. The browser calls `POST {api_base_url}tickets/presigned-url` with a Cognito ID token (`Authorization: Bearer ...`).
+2. API Gateway validates that token against the Cognito user pool (JWT authorizer) before the request even reaches the Lambda.
+3. The `presigned-url` Lambda signs a PUT URL scoped to a single S3 key (under the caller's Cognito `sub`), valid for 5 minutes.
+4. The browser PUTs the file directly to that URL.
+
+There's no self-service sign-up screen yet — create test users manually:
+
+```bash
+aws cognito-idp admin-create-user \
+  --user-pool-id <cognito_user_pool_id from `terraform output`> \
+  --username someone@example.com \
+  --user-attributes Name=email,Value=someone@example.com Name=email_verified,Value=true \
+  --message-action SUPPRESS
+
+aws cognito-idp admin-set-user-password \
+  --user-pool-id <cognito_user_pool_id> \
+  --username someone@example.com \
+  --password "<a-strong-password>" \
+  --permanent
+```
+
+### Frontend runtime config
+
+The deployed site fetches `/config.json` at runtime to learn the Cognito and API Gateway IDs — Terraform generates and uploads it as part of `apply`, so the frontend build itself doesn't need any of these values baked in.
+
+For local development (`npm run dev` inside `frontend/`), create `frontend/public/config.json` yourself (it's gitignored) with the same shape, using values from `terraform output`:
+
+```json
+{
+  "awsRegion": "us-east-1",
+  "cognitoUserPoolId": "...",
+  "cognitoClientId": "...",
+  "apiBaseUrl": "https://....execute-api.us-east-1.amazonaws.com/"
+}
+```
+
 ## Running it from your own machine (optional)
 
 ```bash

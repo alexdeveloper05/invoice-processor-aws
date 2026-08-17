@@ -21,11 +21,18 @@ provider "aws" {
 module "website" {
   source    = "./website"
   build_dir = "${path.module}/../frontend/out"
+
+  runtime_config_json = jsonencode({
+    awsRegion         = var.aws_region
+    cognitoUserPoolId = module.auth.user_pool_id
+    cognitoClientId   = module.auth.user_pool_client_id
+    apiBaseUrl        = module.api-gateway.invoke_url
+  })
 }
 
-# Presigned url
-module "presigned-url" {
-  source = "./presigned-url"
+# Auth
+module "auth" {
+  source = "./auth"
 }
 
 # Application
@@ -33,7 +40,20 @@ module "application" {
   source = "./application"
 }
 
+# Presigned url
+module "presigned-url" {
+  source = "./presigned-url"
+
+  warehouse_bucket_name = module.application.bucket_name
+  warehouse_bucket_arn  = module.application.bucket_arn
+}
+
 # Api gateway
 module "api-gateway" {
   source = "./api-gateway"
+
+  cognito_client_id                  = module.auth.user_pool_client_id
+  cognito_issuer_url                 = module.auth.issuer_url
+  presigned_url_lambda_invoke_arn    = module.presigned-url.invoke_arn
+  presigned_url_lambda_function_name = module.presigned-url.function_name
 }

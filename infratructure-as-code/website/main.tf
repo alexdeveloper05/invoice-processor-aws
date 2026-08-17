@@ -33,7 +33,9 @@ locals {
     ".woff2" = "font/woff2"
   }
 
-  website_files = fileset(var.build_dir, "**")
+  # config.json is managed separately below (aws_s3_object.runtime_config), even if a copy
+  # ends up in the build output (e.g. a local frontend/public/config.json used for `next dev`).
+  website_files = setsubtract(fileset(var.build_dir, "**"), ["config.json"])
 }
 
 resource "random_id" "bucket_suffix" {
@@ -138,14 +140,25 @@ resource "aws_s3_object" "website_files" {
   content_type = try(local.mime_types[lower(regex("\\.[^./]+$", each.value))], "application/octet-stream")
 }
 
+resource "aws_s3_object" "runtime_config" {
+  bucket       = aws_s3_bucket.website.id
+  key          = "config.json"
+  content_type = "application/json"
+  content      = var.runtime_config_json
+  etag         = md5(var.runtime_config_json)
+}
+
 resource "null_resource" "invalidate_cache" {
   triggers = {
-    content_hash = md5(join("", [for f in local.website_files : filemd5("${var.build_dir}/${f}")]))
+    content_hash = md5(join("", concat(
+      [for f in local.website_files : filemd5("${var.build_dir}/${f}")],
+      [var.runtime_config_json]
+    )))
   }
 
   provisioner "local-exec" {
     command = "aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.website.id} --paths '/*'"
   }
 
-  depends_on = [aws_s3_object.website_files]
+  depends_on = [aws_s3_object.website_files, aws_s3_object.runtime_config]
 }

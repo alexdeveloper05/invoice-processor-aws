@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# local runtime config for `next dev` (generated in prod by Terraform, see infratructure-as-code/README.md)
+/public/config.json
+
 # production
 /build
 

@@ -1,53 +1,71 @@
 # Infrastructure as Code
 
-Terraform config for the AWS infrastructure of this project, deployed manually from GitHub Actions ([.github/workflows/terraform.yml](../.github/workflows/terraform.yml)).
+This folder holds the Terraform config for this project's AWS infrastructure. It's applied manually, on demand, from a GitHub Actions workflow — not automatically on every push.
+
+Terraform needs a place to keep track of what it has already created (its "state"). We store that state remotely in an S3 bucket, with a DynamoDB table used as a lock so two runs (e.g. two people, or CI + your laptop) can't apply changes at the same time and corrupt it. **This bucket and table are not part of the invoice-processor app** — they only exist so Terraform can keep its own bookkeeping. You only set them up once, and then never touch them again.
 
 ## One-time setup
 
-### 1. Create the remote state backend
+You only do this once, before the very first `terraform apply`.
 
-Terraform state is stored in S3 (with versioning + encryption) and locked via DynamoDB, so `apply` from CI is safe even if two runs overlap. This backend can't be managed by the same Terraform state it will host, so create it once, manually, from the [`bootstrap/`](./bootstrap) config:
+### 1. Create an AWS user with an access key
+
+1. Open the [AWS Console](https://console.aws.amazon.com) → search for **IAM** → **Users** → **Create user**.
+2. Name it `github-actions-terraform`. Leave "Provide user access to the AWS Management Console" unchecked — this user is only used by Terraform/GitHub, not for logging in.
+3. Under permissions, choose **Attach policies directly** and attach `AdministratorAccess` for now (fine while the project is small; tighten it later to only the services actually used — S3, DynamoDB, Lambda, API Gateway, etc.).
+4. Open the user → **Security credentials** tab → **Create access key** → use case **Command Line Interface (CLI)**.
+5. Copy the **Access key ID** and **Secret access key** somewhere safe — the secret is only shown once.
+
+### 2. Create the state bucket + lock table (once, from your machine)
+
+This is the chicken-and-egg part: the bucket that will hold Terraform's state can't be created by that same state, so it lives in its own small config under [`bootstrap/`](./bootstrap) and you run it locally, directly, using the keys from step 1:
 
 ```bash
+export AWS_ACCESS_KEY_ID="<access key from step 1>"
+export AWS_SECRET_ACCESS_KEY="<secret key from step 1>"
+export AWS_DEFAULT_REGION="us-east-1"   # or whichever region you want
+
 cd infratructure-as-code/bootstrap
 terraform init
 terraform apply \
-  -var="state_bucket_name=<globally-unique-bucket-name>" \
-  -var="aws_region=<your-region>"
+  -var="state_bucket_name=<pick-a-globally-unique-name>" \
+  -var="aws_region=us-east-1"
 ```
 
-Keep the resulting bucket and table names — you'll need them in step 3.
+`state_bucket_name` must be lowercase and unique across *all* of AWS, not just your account — e.g. `invoice-processor-tfstate-yourname123`.
 
-### 2. Create an IAM user for GitHub Actions
+When it finishes, it prints an `Outputs:` block with the bucket name and the lock table name (`invoice-processor-terraform-locks` by default). Keep both — you need them in step 3.
 
-Create an IAM user (e.g. `github-actions-terraform`) with an access key, and a policy that allows it to:
-- Read/write the state bucket and lock table from step 1.
-- Manage whatever AWS services the modules under `infratructure-as-code/` provision (S3, API Gateway, Lambda, DynamoDB, etc.). Scope this down to just those services/resources rather than using `AdministratorAccess`.
+### 3. Give GitHub the AWS keys and the bucket/table names
 
-### 3. Configure the GitHub repository
+In your repo: **Settings → Secrets and variables → Actions**.
 
-Under **Settings > Secrets and variables > Actions**:
-
-**Secrets** (sensitive):
+**Secrets tab** (sensitive — same keys from step 1):
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 
-**Variables** (non-sensitive):
+**Variables tab** (not sensitive):
 - `AWS_REGION` — e.g. `us-east-1`
-- `TF_STATE_BUCKET` — bucket name from step 1
-- `TF_STATE_LOCK_TABLE` — table name from step 1
+- `TF_STATE_BUCKET` — the bucket name from step 2's output
+- `TF_STATE_LOCK_TABLE` — the table name from step 2's output
 
-Optionally, under **Settings > Environments**, create a `production` environment with required reviewers. The workflow already runs `apply`/`destroy` under that environment, so adding reviewers there gates them behind manual approval automatically.
+### 4. (Optional) Require approval before apply/destroy
 
-## Running Terraform
+**Settings → Environments → New environment** → name it exactly `production` → add yourself under "Required reviewers" → Save.
 
-Go to **Actions > Terraform > Run workflow** and pick an action:
-- `plan` — preview changes.
-- `apply` — apply changes to AWS.
-- `destroy` — tear down the managed infrastructure.
-- `fmt-validate` — check formatting and validate the config.
+The workflow already runs `apply` and `destroy` under an environment called `production`, so once you add reviewers there, those two actions pause and wait for your approval in the Actions tab before touching AWS — `plan` and `fmt-validate` are unaffected and run immediately.
 
-## Local development
+## Running Terraform day-to-day
+
+Repo → **Actions** tab → **Terraform** (left sidebar) → **Run workflow**, then pick:
+- `plan` — preview what would change, changes nothing.
+- `apply` — actually create/update resources in AWS.
+- `destroy` — tear down everything Terraform manages here.
+- `fmt-validate` — checks formatting and that the config is syntactically valid.
+
+Start new changes with `plan` (or `fmt-validate`) before ever running `apply`.
+
+## Running it from your own machine (optional)
 
 ```bash
 cd infratructure-as-code

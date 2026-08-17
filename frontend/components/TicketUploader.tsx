@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { requestUploadUrl, uploadTicket } from "@/lib/tickets";
-import type { Session } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -28,7 +28,13 @@ function uploadLabel(pendingCount: number, uploading: boolean): string {
   return `Upload ${pendingCount} ticket${pendingCount === 1 ? "" : "s"}`;
 }
 
-export function TicketUploader({ session, onLogout }: { session: Session; onLogout: () => void }) {
+export function TicketUploader({
+  onLogout,
+  onSessionExpired,
+}: {
+  onLogout: () => void;
+  onSessionExpired: () => void;
+}) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -82,11 +88,18 @@ export function TicketUploader({ session, onLogout }: { session: Session; onLogo
     setUploading(true);
     setError(null);
 
+    const freshSession = await getSession();
+    if (!freshSession) {
+      setUploading(false);
+      onSessionExpired();
+      return;
+    }
+
     await Promise.all(
       pending.map(async (ticket) => {
         setTickets((prev) => prev.map((t) => (t.id === ticket.id ? { ...t, status: "uploading" } : t)));
         try {
-          const { uploadUrl } = await requestUploadUrl(session.idToken, ticket.file.type);
+          const { uploadUrl } = await requestUploadUrl(freshSession.idToken, ticket.file.type);
           await uploadTicket(uploadUrl, ticket.file);
           setTickets((prev) => prev.map((t) => (t.id === ticket.id ? { ...t, status: "uploaded" } : t)));
         } catch {

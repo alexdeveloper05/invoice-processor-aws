@@ -1,16 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LoginForm } from "@/components/LoginForm";
 import { TicketUploader } from "@/components/TicketUploader";
-import type { Session } from "@/lib/auth";
+import { getSession, logout, type Session } from "@/lib/auth";
 
 export default function Home() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
+
+  useEffect(() => {
+    getSession().then(setSession);
+  }, []);
+
+  if (session === undefined) {
+    return <div className="flex flex-1 bg-zinc-50 dark:bg-black" />;
+  }
 
   if (!session) {
     return <LoginForm onLogin={setSession} />;
   }
 
-  return <TicketUploader session={session} onLogout={() => setSession(null)} />;
+  return (
+    <TicketUploader
+      onSessionExpired={() => setSession(null)}
+      onLogout={() => {
+        logout();
+        setSession(null);
+      }}
+    />
+  );
 }

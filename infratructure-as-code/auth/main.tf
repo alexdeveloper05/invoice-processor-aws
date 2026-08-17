@@ -34,4 +34,14 @@ resource "aws_cognito_user_pool_client" "web" {
     "ALLOW_USER_PASSWORD_AUTH",
     "ALLOW_REFRESH_TOKEN_AUTH",
   ]
+
+  access_token_validity  = 1
+  id_token_validity      = 1
+  refresh_token_validity = 10
+
+  token_validity_units {
+    access_token  = "hours"
+    id_token      = "hours"
+    refresh_token = "days"
+  }
 }

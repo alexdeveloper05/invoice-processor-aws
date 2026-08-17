@@ -19,7 +19,8 @@ provider "aws" {
 
 # Website
 module "website" {
-  source = "./website"
+  source    = "./website"
+  build_dir = "${path.module}/../frontend/out"
 }
 
 # Presigned url

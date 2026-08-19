@@ -199,6 +199,20 @@ resource "aws_iam_role_policy_attachment" "textract_caller_logs" {
 
 data "aws_iam_policy_document" "textract_caller_permissions" {
   statement {
+    # StartExpenseAnalysis reads the object using this role's permissions to
+    # validate it before the job starts, even though the object itself is
+    # only actually processed later, asynchronously, by Textract.
+    actions = [
+      "s3:GetObject",
+      "s3:GetBucketLocation",
+    ]
+    resources = [
+      aws_s3_bucket.invoice_warehouse.arn,
+      "${aws_s3_bucket.invoice_warehouse.arn}/*",
+    ]
+  }
+
+  statement {
     # Textract actions don't support resource-level ARNs.
     actions   = ["textract:StartExpenseAnalysis"]
     resources = ["*"]

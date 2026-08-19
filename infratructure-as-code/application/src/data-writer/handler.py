@@ -20,6 +20,9 @@ def handler(event, context):
 
     if event["status"] == "PROCESSED":
         item["pages"] = event.get("pages", [])
+        for key in ("vendorName", "total", "receiptDate"):
+            if key in event:
+                item[key] = event[key]
     else:
         item["error"] = event.get("error", "Unknown error")
 

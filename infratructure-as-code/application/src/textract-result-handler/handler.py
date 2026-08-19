@@ -40,9 +40,19 @@ def _handle_job(message):
         # One entry per expense Textract detected — usually one per page for a
         # multi-page invoice, or one per receipt if several were in one file.
         # Textract doesn't tell us which case we're in.
-        payload["pages"] = [
-            _extract_fields(document) for document in _get_all_expense_documents(job_id)
-        ]
+        payload["pages"] = [_extract_expense(document) for document in _get_all_expense_documents(job_id)]
+
+        # Convenience top-level copies of the fields a company most likely wants
+        # to query/filter on, taken from the first page. The full detail (every
+        # field Textract found, plus line items) still lives in "pages".
+        first_page_fields = payload["pages"][0]["fields"] if payload["pages"] else {}
+        for target_key, textract_key in (
+            ("vendorName", "VENDOR_NAME"),
+            ("total", "TOTAL"),
+            ("receiptDate", "INVOICE_RECEIPT_DATE"),
+        ):
+            if textract_key in first_page_fields:
+                payload[target_key] = first_page_fields[textract_key]
     else:
         payload["status"] = "FAILED"
         payload["error"] = f"Textract job {status.lower()}"
@@ -71,11 +81,26 @@ def _get_all_expense_documents(job_id):
             return documents
 
 
-def _extract_fields(expense_document):
+def _extract_expense(expense_document):
     fields = {}
     for summary_field in expense_document.get("SummaryFields", []):
         field_type = summary_field.get("Type", {}).get("Text")
         value = summary_field.get("ValueDetection", {}).get("Text")
         if field_type and value:
             fields[field_type] = value
-    return fields
+
+    # What was actually bought — item name, price, quantity, etc. Summary
+    # fields alone only cover the receipt as a whole (vendor, total, date...).
+    line_items = []
+    for group in expense_document.get("LineItemGroups", []):
+        for line_item in group.get("LineItems", []):
+            item = {}
+            for line_field in line_item.get("LineItemExpenseFields", []):
+                field_type = line_field.get("Type", {}).get("Text")
+                value = line_field.get("ValueDetection", {}).get("Text")
+                if field_type and value:
+                    item[field_type] = value
+            if item:
+                line_items.append(item)
+
+    return {"fields": fields, "lineItems": line_items}

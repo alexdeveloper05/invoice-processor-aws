@@ -11,9 +11,20 @@ function formatDate(processedAt: string): string {
 }
 
 function summarize(ticket: ProcessedTicket): string {
-  const page = ticket.pages?.[0];
-  const parts = [page?.VENDOR_NAME, page?.TOTAL, page?.INVOICE_RECEIPT_DATE].filter(Boolean);
+  const page = ticket.pages?.[0]?.fields;
+  const parts = [
+    ticket.vendorName ?? page?.VENDOR_NAME,
+    ticket.total ?? page?.TOTAL,
+    ticket.receiptDate ?? page?.INVOICE_RECEIPT_DATE,
+  ].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : "No details extracted";
+}
+
+function lineItemLabel(item: Record<string, string>): string {
+  const description = item.ITEM ?? item.PRODUCT_CODE ?? "Item";
+  const quantity = item.QUANTITY ? `x${item.QUANTITY}` : null;
+  const price = item.PRICE ?? item.UNIT_PRICE;
+  return [description, quantity, price].filter(Boolean).join(" · ");
 }
 
 export function TicketList({ refreshSignal }: { refreshSignal: number }) {
@@ -98,6 +109,19 @@ export function TicketList({ refreshSignal }: { refreshSignal: number }) {
               {ticket.status === "FAILED" && ticket.error && (
                 <span className="text-xs text-red-600 dark:text-red-400">{ticket.error}</span>
               )}
+              {ticket.status === "PROCESSED" &&
+                ticket.pages?.some((page) => page.lineItems.length > 0) && (
+                  <details className="text-xs text-zinc-600 dark:text-zinc-400">
+                    <summary className="cursor-pointer select-none">What was bought</summary>
+                    <ul className="mt-1 flex flex-col gap-0.5 pl-3">
+                      {ticket.pages.flatMap((page, pageIndex) =>
+                        page.lineItems.map((item, itemIndex) => (
+                          <li key={`${pageIndex}-${itemIndex}`}>{lineItemLabel(item)}</li>
+                        ))
+                      )}
+                    </ul>
+                  </details>
+                )}
             </li>
           ))}
         </ul>

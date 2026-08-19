@@ -1,5 +1,10 @@
 import { getRuntimeConfig } from "./config";
 
+export type ExpensePage = {
+  fields: Record<string, string>;
+  lineItems: Record<string, string>[];
+};
+
 export type ProcessedTicket = {
   userId: string;
   ticketId: string;
@@ -7,7 +12,10 @@ export type ProcessedTicket = {
   bucket: string;
   key: string;
   processedAt: string;
-  pages?: Record<string, string>[];
+  vendorName?: string;
+  total?: string;
+  receiptDate?: string;
+  pages?: ExpensePage[];
   error?: string;
 };
 

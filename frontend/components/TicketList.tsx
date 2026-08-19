@@ -110,12 +110,12 @@ export function TicketList({ refreshSignal }: { refreshSignal: number }) {
                 <span className="text-xs text-red-600 dark:text-red-400">{ticket.error}</span>
               )}
               {ticket.status === "PROCESSED" &&
-                ticket.pages?.some((page) => page.lineItems.length > 0) && (
+                ticket.pages?.some((page) => (page.lineItems?.length ?? 0) > 0) && (
                   <details className="text-xs text-zinc-600 dark:text-zinc-400">
                     <summary className="cursor-pointer select-none">What was bought</summary>
                     <ul className="mt-1 flex flex-col gap-0.5 pl-3">
                       {ticket.pages.flatMap((page, pageIndex) =>
-                        page.lineItems.map((item, itemIndex) => (
+                        (page.lineItems ?? []).map((item, itemIndex) => (
                           <li key={`${pageIndex}-${itemIndex}`}>{lineItemLabel(item)}</li>
                         ))
                       )}

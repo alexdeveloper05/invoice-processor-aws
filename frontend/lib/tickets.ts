@@ -1,5 +1,32 @@
 import { getRuntimeConfig } from "./config";
 
+export type ProcessedTicket = {
+  userId: string;
+  ticketId: string;
+  status: "PROCESSED" | "FAILED";
+  bucket: string;
+  key: string;
+  processedAt: string;
+  pages?: Record<string, string>[];
+  error?: string;
+};
+
+export async function listTickets(idToken: string): Promise<ProcessedTicket[]> {
+  const config = await getRuntimeConfig();
+
+  const response = await fetch(`${config.apiBaseUrl}tickets`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+
+  if (!response.ok) {
+    throw new Error("Could not load tickets");
+  }
+
+  const { tickets } = (await response.json()) as { tickets: ProcessedTicket[] };
+  return tickets;
+}
+
 export async function requestUploadUrl(
   idToken: string,
   contentType: string

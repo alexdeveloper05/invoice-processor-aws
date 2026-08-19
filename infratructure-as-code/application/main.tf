@@ -341,3 +341,51 @@ resource "aws_sns_topic_subscription" "textract_result_handler" {
   protocol  = "lambda"
   endpoint  = aws_lambda_function.textract_result_handler.arn
 }
+
+# --- reader: called by API Gateway to list the caller's own tickets ---
+
+data "archive_file" "reader" {
+  type        = "zip"
+  source_dir  = "${path.module}/src/reader"
+  output_path = "${path.module}/dist/reader.zip"
+}
+
+resource "aws_iam_role" "reader" {
+  name               = "invoice-processor-reader"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "reader_logs" {
+  role       = aws_iam_role.reader.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+data "aws_iam_policy_document" "reader_permissions" {
+  statement {
+    actions   = ["dynamodb:Query"]
+    resources = [aws_dynamodb_table.tickets.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "reader_permissions" {
+  name   = "invoice-processor-reader-permissions"
+  role   = aws_iam_role.reader.id
+  policy = data.aws_iam_policy_document.reader_permissions.json
+}
+
+resource "aws_lambda_function" "reader" {
+  function_name    = "invoice-processor-reader"
+  role             = aws_iam_role.reader.arn
+  handler          = "handler.handler"
+  runtime          = "python3.12"
+  timeout          = 10
+  memory_size      = 128
+  filename         = data.archive_file.reader.output_path
+  source_code_hash = data.archive_file.reader.output_base64sha256
+
+  environment {
+    variables = {
+      TICKETS_TABLE_NAME = aws_dynamodb_table.tickets.name
+    }
+  }
+}

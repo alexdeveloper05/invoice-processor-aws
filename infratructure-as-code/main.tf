@@ -56,4 +56,6 @@ module "api-gateway" {
   cognito_issuer_url                 = module.auth.issuer_url
   presigned_url_lambda_invoke_arn    = module.presigned-url.invoke_arn
   presigned_url_lambda_function_name = module.presigned-url.function_name
+  reader_lambda_invoke_arn           = module.application.reader_invoke_arn
+  reader_lambda_function_name        = module.application.reader_function_name
 }

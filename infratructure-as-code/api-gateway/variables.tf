@@ -23,3 +23,13 @@ variable "presigned_url_lambda_function_name" {
   description = "Function name of the presigned-url Lambda"
   type        = string
 }
+
+variable "reader_lambda_invoke_arn" {
+  description = "Invoke ARN of the reader Lambda"
+  type        = string
+}
+
+variable "reader_lambda_function_name" {
+  description = "Function name of the reader Lambda"
+  type        = string
+}

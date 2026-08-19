@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { requestUploadUrl, uploadTicket } from "@/lib/tickets";
 import { getSession } from "@/lib/auth";
+import { TicketList } from "./TicketList";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -38,6 +39,7 @@ export function TicketUploader({
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [refreshSignal, setRefreshSignal] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const addFiles = useCallback((fileList: FileList | null) => {
@@ -109,6 +111,7 @@ export function TicketUploader({
     );
 
     setUploading(false);
+    setRefreshSignal((n) => n + 1);
   };
 
   const pendingCount = tickets.filter((t) => t.status === "pending" || t.status === "error").length;
@@ -208,6 +211,10 @@ export function TicketUploader({
         >
           {uploadLabel(pendingCount, uploading)}
         </button>
+
+        <hr className="border-zinc-200 dark:border-zinc-800" />
+
+        <TicketList refreshSignal={refreshSignal} />
       </main>
     </div>
   );

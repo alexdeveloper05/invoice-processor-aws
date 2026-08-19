@@ -90,6 +90,22 @@ aws cognito-idp admin-set-user-password \
   --permanent
 ```
 
+## Processing tickets
+
+Once a file lands in the invoice warehouse bucket, it's picked up automatically — no polling, no manual step. This uses Textract's *asynchronous* API (`StartExpenseAnalysis`/`GetExpenseAnalysis`), which is the only mode that supports multi-page PDFs — the synchronous `AnalyzeExpense` call is limited to a single page, so it wouldn't work for a multi-page invoice. The same async path handles plain single-page images too, so there's just one code path either way:
+
+1. The S3 upload triggers `textract-caller` (S3 event notification), which calls `StartExpenseAnalysis` and returns immediately — it doesn't wait for the result.
+2. Textract processes the document in the background (can take anywhere from a few seconds to a couple of minutes depending on page count) and, when done, publishes a notification to an SNS topic.
+3. That notification triggers `textract-result-handler`, which fetches the actual result (`GetExpenseAnalysis`, paginated) and pulls out the summary fields (vendor, total, date, tax, etc.) for each expense Textract detected — usually one per page for a multi-page invoice, or one per receipt if a single upload contained several. Textract doesn't tell us which case we're in, so this is stored as a list (`pages`) rather than assumed to be one set of fields.
+4. It invokes `data-writer` (Lambda-to-Lambda, async) with either that list or, if the job failed (blurry photo, unsupported content, etc.), an error message. `textract-caller` also invokes `data-writer` directly if *starting* the job itself fails.
+5. `data-writer` puts one item per ticket into the `invoice-processor-tickets` DynamoDB table, keyed by `userId` (Cognito `sub`) + `ticketId`, with `status` of `PROCESSED` or `FAILED`.
+
+There's no UI to browse this data yet (that's the still-unbuilt `reader` piece from the diagram) — for now you can check it landed correctly with:
+
+```bash
+aws dynamodb scan --table-name invoice-processor-tickets
+```
+
 ### Frontend runtime config
 
 The deployed site fetches `/config.json` at runtime to learn the Cognito and API Gateway IDs — Terraform generates and uploads it as part of `apply`, so the frontend build itself doesn't need any of these values baked in.

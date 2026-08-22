@@ -100,7 +100,7 @@ Once a file lands in the invoice warehouse bucket, it's picked up automatically 
 4. It invokes `data-writer` (Lambda-to-Lambda, async) with either that list or, if the job failed (blurry photo, unsupported content, etc.), an error message. `textract-caller` also invokes `data-writer` directly if *starting* the job itself fails.
 5. `data-writer` puts one item per ticket into the `invoice-processor-tickets` DynamoDB table, keyed by `userId` (Cognito `sub`) + `ticketId`, with `status` of `PROCESSED` or `FAILED`.
 
-There's no UI to browse this data yet (that's the still-unbuilt `reader` piece from the diagram) — for now you can check it landed correctly with:
+The `reader` Lambda (behind `GET /tickets`, JWT-protected same as the rest) is what the Tickets and Finances tabs call to show this — but if you want to check the raw data directly:
 
 ```bash
 aws dynamodb scan --table-name invoice-processor-tickets
@@ -120,6 +120,17 @@ For local development (`npm run dev` inside `frontend/`), create `frontend/publi
   "apiBaseUrl": "https://....execute-api.us-east-1.amazonaws.com/"
 }
 ```
+
+## Security notes
+
+A few things worth knowing about how this is locked down, in case you're auditing it or extending it:
+
+- **S3**: every bucket (state, website, warehouse) blocks all public access at the bucket level; the website bucket is only readable by CloudFront, via Origin Access Control — there's no public URL that serves it directly.
+- **API**: every route requires a valid Cognito JWT (checked by API Gateway itself, before the request reaches a Lambda), and the stage has request throttling (burst 20 / 10 req/s) so a leaked token can't be used to run up a Textract bill by hammering the endpoint.
+- **Uploads**: presigned URLs are single-key, single-use in practice (5-minute expiry), and pinned to a specific content type at signing time — a client can't swap in a different file type after the fact.
+- **Site headers**: the CloudFront response includes a Content-Security-Policy, HSTS, `X-Frame-Options: DENY`, and a few others, via an `aws_cloudfront_response_headers_policy`. If you add a new external API call from the frontend, you'll need to add its origin to the `connect-src` list in the root `main.tf` or the browser will block it.
+- **Logs**: Lambda CloudWatch log groups are capped at 30 days retention instead of the default "forever."
+- **The one deliberately-not-fixed item**: the GitHub Actions IAM user has `AdministratorAccess` (see step 1 above) — that's a real trade-off for simplicity while the project is small, not an oversight. Narrowing it to just the services this Terraform config actually touches (S3, DynamoDB, Lambda, IAM, API Gateway, Cognito, SNS, CloudFront, Textract, CloudWatch Logs) is worth doing before this holds anything you'd mind losing.
 
 ## Running it from your own machine (optional)
 

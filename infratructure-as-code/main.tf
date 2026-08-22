@@ -18,9 +18,34 @@ provider "aws" {
 }
 
 # Website
+locals {
+  # Only ever built from var.aws_region — deliberately not from any module output,
+  # so this can't introduce a dependency cycle with the modules below.
+  content_security_policy = join("; ", [
+    "default-src 'self'",
+    # 'unsafe-inline' is required because Next.js's static export ships a small
+    # inline hydration script; there's no per-request nonce to attach to it.
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' blob: data:",
+    "font-src 'self'",
+    join(" ", [
+      "connect-src 'self'",
+      "https://cognito-idp.${var.aws_region}.amazonaws.com",
+      "https://*.execute-api.${var.aws_region}.amazonaws.com",
+      "https://*.s3.${var.aws_region}.amazonaws.com",
+    ]),
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ])
+}
+
 module "website" {
   source    = "./website"
   build_dir = "${path.module}/../frontend/out"
+
+  content_security_policy = local.content_security_policy
 
   runtime_config_json = jsonencode({
     awsRegion         = var.aws_region

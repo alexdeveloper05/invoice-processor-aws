@@ -49,6 +49,13 @@ resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.main.id
   name        = "$default"
   auto_deploy = true
+
+  # Cheap insurance against a leaked/valid token being used to hammer the API —
+  # Textract and Lambda calls cost money per invocation. Generous for normal use.
+  default_route_settings {
+    throttling_burst_limit = 20
+    throttling_rate_limit  = 10
+  }
 }
 
 resource "aws_lambda_permission" "apigw" {

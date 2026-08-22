@@ -138,6 +138,11 @@ resource "aws_lambda_function" "data_writer" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "data_writer" {
+  name              = "/aws/lambda/${aws_lambda_function.data_writer.function_name}"
+  retention_in_days = 30
+}
+
 # --- Textract async pipeline ---
 #
 # AnalyzeExpense (synchronous) only supports single-page documents, so multi-page
@@ -256,6 +261,11 @@ resource "aws_lambda_function" "textract_caller" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "textract_caller" {
+  name              = "/aws/lambda/${aws_lambda_function.textract_caller.function_name}"
+  retention_in_days = 30
+}
+
 resource "aws_lambda_permission" "s3_invoke_textract_caller" {
   statement_id  = "AllowS3Invoke"
   action        = "lambda:InvokeFunction"
@@ -328,6 +338,11 @@ resource "aws_lambda_function" "textract_result_handler" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "textract_result_handler" {
+  name              = "/aws/lambda/${aws_lambda_function.textract_result_handler.function_name}"
+  retention_in_days = 30
+}
+
 resource "aws_lambda_permission" "sns_invoke_textract_result_handler" {
   statement_id  = "AllowSNSInvoke"
   action        = "lambda:InvokeFunction"
@@ -388,4 +403,9 @@ resource "aws_lambda_function" "reader" {
       TICKETS_TABLE_NAME = aws_dynamodb_table.tickets.name
     }
   }
+}
+
+resource "aws_cloudwatch_log_group" "reader" {
+  name              = "/aws/lambda/${aws_lambda_function.reader.function_name}"
+  retention_in_days = 30
 }

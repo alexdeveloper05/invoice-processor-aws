@@ -68,3 +68,8 @@ resource "aws_lambda_function" "presigned_url" {
     }
   }
 }
+
+resource "aws_cloudwatch_log_group" "presigned_url" {
+  name              = "/aws/lambda/${aws_lambda_function.presigned_url.function_name}"
+  retention_in_days = 30
+}

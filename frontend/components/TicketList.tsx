@@ -67,7 +67,7 @@ export function TicketList({
           {tickets.map((ticket) => (
             <li
               key={ticket.ticketId}
-              className="flex flex-col gap-1 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+              className="flex flex-col gap-1 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="truncate text-sm font-medium text-black dark:text-zinc-50">

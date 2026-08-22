@@ -6,7 +6,7 @@ import type { ProcessedTicket } from "@/lib/tickets";
 
 function StatTile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="flex flex-col gap-1 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <span className="text-xs text-zinc-500 dark:text-zinc-400">{label}</span>
       <span className="text-xl font-semibold text-black dark:text-zinc-50">{value}</span>
       {hint && <span className="text-xs text-zinc-500 dark:text-zinc-400">{hint}</span>}
@@ -91,7 +91,7 @@ export function FinancesPanel({ tickets }: { tickets: ProcessedTicket[] }) {
             {summary.topVendors.map((vendor) => (
               <li
                 key={vendor.vendor}
-                className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+                className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
               >
                 <span className="truncate text-sm text-black dark:text-zinc-50">{vendor.vendor}</span>
                 <span className="shrink-0 text-sm font-medium text-black dark:text-zinc-50">

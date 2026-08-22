@@ -27,9 +27,15 @@ export function LoginForm({ onLogin }: { onLogin: (session: Session) => void }) 
     <div className="flex flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <form
         onSubmit={handleSubmit}
-        className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900"
+        className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#2a78d6] dark:bg-[#3987e5]" />
+            <span className="text-sm font-semibold text-black dark:text-zinc-50">
+              Invoice Processor
+            </span>
+          </div>
           <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Sign in</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Sign in to upload and track your tickets.
@@ -63,7 +69,7 @@ export function LoginForm({ onLogin }: { onLogin: (session: Session) => void }) 
         <button
           type="submit"
           disabled={loading}
-          className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40"
         >
           {loading ? "Signing in…" : "Sign in"}
         </button>

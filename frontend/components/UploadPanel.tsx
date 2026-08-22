@@ -155,7 +155,7 @@ export function UploadPanel({
       <button
         type="button"
         onClick={() => cameraInputRef.current?.click()}
-        className="flex items-center justify-center gap-2 rounded-full border border-zinc-300 bg-white px-5 py-3 text-sm font-medium text-black transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:border-zinc-600"
+        className="flex items-center justify-center gap-2 rounded-full border border-zinc-300 bg-white px-5 py-3 text-sm font-medium text-black shadow-sm transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:border-zinc-600"
       >
         📷 Take a photo
       </button>
@@ -175,7 +175,7 @@ export function UploadPanel({
           {tickets.map((ticket) => (
             <li
               key={ticket.id}
-              className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+              className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
             >
               {ticket.previewUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -216,7 +216,7 @@ export function UploadPanel({
         type="button"
         disabled={pendingCount === 0 || uploading}
         onClick={handleUpload}
-        className="rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background transition-colors disabled:cursor-not-allowed disabled:opacity-40 hover:enabled:bg-[#383838] dark:hover:enabled:bg-[#ccc]"
+        className="rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 hover:enabled:bg-[#383838] dark:hover:enabled:bg-[#ccc]"
       >
         {uploadLabel(pendingCount, uploading)}
       </button>

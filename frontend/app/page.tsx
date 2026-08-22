@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LoginForm } from "@/components/LoginForm";
-import { TicketUploader } from "@/components/TicketUploader";
+import { Dashboard } from "@/components/Dashboard";
 import { getSession, logout, type Session } from "@/lib/auth";
 
 export default function Home() {
@@ -21,7 +21,7 @@ export default function Home() {
   }
 
   return (
-    <TicketUploader
+    <Dashboard
       onSessionExpired={() => setSession(null)}
       onLogout={() => {
         logout();

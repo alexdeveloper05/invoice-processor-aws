@@ -1,8 +1,9 @@
 import { getRuntimeConfig } from "./config";
 
 export type ExpensePage = {
-  fields: Record<string, string>;
-  // Absent on tickets processed before line-item extraction was added.
+  // Both absent on tickets processed before the fields/lineItems split was
+  // introduced — those old records store the fields flat on the page itself.
+  fields?: Record<string, string>;
   lineItems?: Record<string, string>[];
 };
 

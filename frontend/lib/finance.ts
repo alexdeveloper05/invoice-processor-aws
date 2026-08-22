@@ -41,11 +41,11 @@ export function formatCurrency(amount: number, symbol: string | null): string {
 }
 
 function ticketAmount(ticket: ProcessedTicket): number | null {
-  return parseAmount(ticket.total ?? ticket.pages?.[0]?.fields.TOTAL);
+  return parseAmount(ticket.total ?? ticket.pages?.[0]?.fields?.TOTAL);
 }
 
 function ticketVendor(ticket: ProcessedTicket): string | undefined {
-  return ticket.vendorName ?? ticket.pages?.[0]?.fields.VENDOR_NAME;
+  return ticket.vendorName ?? ticket.pages?.[0]?.fields?.VENDOR_NAME;
 }
 
 export type MonthlySummary = {
@@ -117,7 +117,7 @@ export function summarizeFinances(tickets: ProcessedTicket[]): FinanceSummary {
   const vendorTotals = new Map<string, { total: number; count: number }>();
 
   for (const ticket of processed) {
-    const rawTotal = ticket.total ?? ticket.pages?.[0]?.fields.TOTAL;
+    const rawTotal = ticket.total ?? ticket.pages?.[0]?.fields?.TOTAL;
     const amount = parseAmount(rawTotal);
     if (amount !== null) {
       totalSpend += amount;

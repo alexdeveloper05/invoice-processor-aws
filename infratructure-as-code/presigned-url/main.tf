@@ -69,6 +69,7 @@ resource "aws_lambda_function" "presigned_url" {
       DAILY_LIMIT            = tostring(var.daily_limit)
     }
   }
+}
 
 resource "aws_cloudwatch_log_group" "presigned_url" {
   name              = "/aws/lambda/${aws_lambda_function.presigned_url.function_name}"

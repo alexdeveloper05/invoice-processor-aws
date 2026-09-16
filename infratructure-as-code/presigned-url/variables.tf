@@ -13,3 +13,9 @@ variable "url_expiration_seconds" {
   type        = number
   default     = 300
 }
+
+variable "daily_limit" {
+  description = "Max tickets a user can upload per day"
+  type        = number
+  default     = 10
+}

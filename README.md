@@ -1,3 +1,7 @@
+Website: https://dpum2v7c16gyd.cloudfront.net/
+User: alexdeveloper2005@gmail.com
+Password: Invoice2026!
+
 # Invoice Processor
 
 A small, low-cost web app for keeping track of receipts: upload a photo or PDF of a ticket, and it automatically pulls out the vendor, date, total, tax and what was bought — no manual data entry. Built entirely on serverless AWS, so it costs close to nothing when nobody's using it.

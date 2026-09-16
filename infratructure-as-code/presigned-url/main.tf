@@ -73,3 +73,38 @@ resource "aws_cloudwatch_log_group" "presigned_url" {
   name              = "/aws/lambda/${aws_lambda_function.presigned_url.function_name}"
   retention_in_days = 30
 }
+
+resource "aws_dynamodb_table" "usage" {
+  name         = "invoice-processor-usage"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "userId"
+  range_key    = "date"
+
+  attribute {
+    name = "userId"
+    type = "S"
+  }
+
+  attribute {
+    name = "date"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "expiresAt"
+    enabled        = true
+  }
+}
+
+data "aws_iam_policy_document" "usage_table" {
+  statement {
+    actions   = ["dynamodb:UpdateItem"]
+    resources = [aws_dynamodb_table.usage.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "usage_table" {
+  name   = "invoice-processor-presigned-url-usage"
+  role   = aws_iam_role.lambda.id
+  policy = data.aws_iam_policy_document.usage_table.json
+}

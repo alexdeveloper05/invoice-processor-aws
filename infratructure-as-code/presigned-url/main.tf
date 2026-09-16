@@ -65,9 +65,10 @@ resource "aws_lambda_function" "presigned_url" {
     variables = {
       WAREHOUSE_BUCKET_NAME  = var.warehouse_bucket_name
       URL_EXPIRATION_SECONDS = tostring(var.url_expiration_seconds)
+      USAGE_TABLE_NAME       = aws_dynamodb_table.usage.name
+      DAILY_LIMIT            = tostring(var.daily_limit)
     }
   }
-}
 
 resource "aws_cloudwatch_log_group" "presigned_url" {
   name              = "/aws/lambda/${aws_lambda_function.presigned_url.function_name}"
